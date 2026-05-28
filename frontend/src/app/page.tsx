@@ -7,7 +7,7 @@ import ScanButton from "@/components/ScanButton";
 import StatsBar from "@/components/StatsBar";
 import { API_BASE } from "@/lib/api";
 
-const TOTAL_STOCKS = 40;
+const TOTAL_STOCKS = 100;
 
 export default function Home() {
   const [status, setStatus] = useState<ScanStatus>("idle");

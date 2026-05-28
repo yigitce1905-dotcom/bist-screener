@@ -17,13 +17,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# BIST 30 + en likit hisseler (hız için kısaltıldı)
+# BIST 100 endeksi (en likit ~100 hisse)
 BIST_STOCKS = [
-    "AKBNK", "AKSEN", "ARCLK", "ASELS", "ASTOR", "BIMAS", "CCOLA", "EKGYO",
-    "ENKAI", "EREGL", "FROTO", "GARAN", "GUBRF", "HALKB", "ISCTR", "KCHOL",
-    "KOZAA", "KOZAL", "KRDMD", "MGROS", "ODAS", "OYAKC", "PETKM", "PGSUS",
-    "SAHOL", "SASA", "SISE", "SOKM", "TAVHL", "TCELL", "THYAO", "TKFEN",
-    "TOASO", "TTKOM", "TUPRS", "ULKER", "VAKBN", "VESTL", "YKBNK", "ZOREN",
+    "AEFES", "AGHOL", "AKBNK", "AKFGY", "AKFYE", "AKSA", "AKSEN", "ALARK",
+    "ALBRK", "ANSGR", "ARCLK", "ASELS", "ASTOR", "BERA", "BIMAS", "BIOEN",
+    "BRSAN", "BRYAT", "BUCIM", "CANTE", "CCOLA", "CIMSA", "CWENE", "DOAS",
+    "DOHOL", "ECILC", "EGEEN", "EKGYO", "ENJSA", "ENKAI", "EREGL", "EUPWR",
+    "EUREN", "FROTO", "GARAN", "GESAN", "GLYHO", "GUBRF", "GWIND", "HALKB",
+    "HEKTS", "IPEKE", "ISCTR", "ISDMR", "ISGYO", "KCAER", "KCHOL", "KLSER",
+    "KMPUR", "KONTR", "KONYA", "KORDS", "KOZAA", "KOZAL", "KRDMD", "MAVI",
+    "MGROS", "MIATK", "MPARK", "ODAS", "OTKAR", "OYAKC", "PAPIL", "PENTA",
+    "PETKM", "PGSUS", "REEDR", "SAHOL", "SASA", "SDTTR", "SISE", "SKBNK",
+    "SMRTG", "SOKM", "TAVHL", "TCELL", "THYAO", "TKFEN", "TKNSA", "TOASO",
+    "TRGYO", "TSKB", "TTKOM", "TUKAS", "TUPRS", "TURSG", "ULKER", "VAKBN",
+    "VESBE", "VESTL", "YEOTK", "YKBNK", "YYLGD", "ZOREN", "BFREN", "FENER",
+    "HATEK", "INDES", "KARTN", "LOGO", "NUHCM", "TATGD",
 ]
 
 EMA_PERIODS = [8, 21, 55, 89, 144]
