@@ -1,0 +1,31 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/_cache/
+backend/*.pyc
+backend/test_no_rule3.py
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Logs
+*.log
+tunnel.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Local tunnel binary (büyük, repo'ya girmesin)
+cloudflared.exe
+
+# Env
+.env
+.env.local
+.env*.local
