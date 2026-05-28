@@ -152,6 +152,37 @@ def find_falling_trend_resistance(high: pd.Series, lookback: int = TREND_LOOKBAC
     return float(slope * today_idx + intercept)
 
 
+def find_rising_trend_support(low: pd.Series, lookback: int = 250) -> Optional[float]:
+    """
+    Ana yükselen trend desteği: uzun vadeli dip noktalardan geçen yükselen çizgi.
+    Lookback default 250 gün (~1 yıl) — ana trend bu kadar uzun pencere ile bulunur.
+    """
+    recent = low.iloc[-lookback:].copy()
+    if len(recent) < 20:
+        return None
+
+    arr = recent.values
+    pivot_indices, pivot_values = [], []
+    # Geniş window pivot (5 günlük): ana trend için daha sağlam dipler
+    for i in range(3, len(arr) - 3):
+        if (arr[i] <= arr[i-1] and arr[i] <= arr[i-2] and arr[i] <= arr[i-3]
+                and arr[i] <= arr[i+1] and arr[i] <= arr[i+2] and arr[i] <= arr[i+3]):
+            pivot_indices.append(i)
+            pivot_values.append(arr[i])
+
+    if len(pivot_values) < 2:
+        return float(recent.min())
+
+    x = np.array(pivot_indices, dtype=float)
+    y = np.array(pivot_values, dtype=float)
+    slope, intercept = np.polyfit(x, y, 1)
+    # Negatif eğim = trend düşüyor demek, destek olarak kullanılamaz
+    if slope <= 0:
+        return None
+    today_idx = float(len(arr) - 1)
+    return float(slope * today_idx + intercept)
+
+
 def _analyze_dataframe(ticker_base: str, df: pd.DataFrame,
                        ignore_rule3: bool = False) -> Optional[dict]:
     """Önceden indirilmiş bir DataFrame'i analiz eder."""
@@ -159,12 +190,13 @@ def _analyze_dataframe(ticker_base: str, df: pd.DataFrame,
         if df is None or df.empty or len(df) < MIN_DATA_DAYS:
             return None
 
-        df = df.dropna(subset=["Close", "High"])
+        df = df.dropna(subset=["Close", "High", "Low"])
         if len(df) < MIN_DATA_DAYS:
             return None
 
         close = df["Close"]
         high = df["High"]
+        low = df["Low"]
 
         emas = {p: compute_ema(close, p) for p in EMA_PERIODS}
         latest = {p: float(emas[p].iloc[-1]) for p in EMA_PERIODS}
@@ -192,6 +224,12 @@ def _analyze_dataframe(ticker_base: str, df: pd.DataFrame,
             if distance_pct is None or distance_pct < 0 or distance_pct >= TREND_MARGIN:
                 return None
 
+        # KURAL 4 (sıralama kriteri): Ana yükselen trend desteğine uzaklık
+        support = find_rising_trend_support(low, lookback=250)
+        distance_to_support_pct = None
+        if support is not None and support > 0:
+            distance_to_support_pct = (current_price - support) / support * 100
+
         prev_close = float(close.iloc[-2]) if len(close) > 1 else current_price
         daily_change_pct = ((current_price - prev_close) / prev_close) * 100
 
@@ -207,6 +245,9 @@ def _analyze_dataframe(ticker_base: str, df: pd.DataFrame,
             "resistance": round(resistance, 2) if resistance else None,
             "distance_to_resistance_pct": round(distance_pct * 100, 2)
                 if distance_pct is not None else None,
+            "support": round(support, 2) if support else None,
+            "distance_to_support_pct": round(distance_to_support_pct, 2)
+                if distance_to_support_pct is not None else None,
             "above_ema8": current_price > latest[8],
             "above_ema21": current_price > latest[21],
         }

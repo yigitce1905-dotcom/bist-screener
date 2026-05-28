@@ -7,8 +7,10 @@ export interface StockResult {
   ema55: number;
   ema89: number;
   ema144: number;
-  resistance: number;
-  distance_to_resistance_pct: number;
+  resistance: number | null;
+  distance_to_resistance_pct: number | null;
+  support: number | null;
+  distance_to_support_pct: number | null;
   above_ema8: boolean;
   above_ema21: boolean;
 }

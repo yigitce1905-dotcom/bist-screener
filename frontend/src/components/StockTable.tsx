@@ -40,7 +40,9 @@ export default function StockTable({ results, onSelect, selectedTicker }: Props)
             <th className="px-4 py-3 text-right font-medium" style={{ color: EMA_COLORS.ema89 }}>EMA 89</th>
             <th className="px-4 py-3 text-right font-medium" style={{ color: EMA_COLORS.ema144 }}>EMA 144</th>
             <th className="px-4 py-3 text-right text-text-secondary font-medium">Direnç ₺</th>
-            <th className="px-4 py-3 text-right text-text-secondary font-medium">Uzaklık %</th>
+            <th className="px-4 py-3 text-right text-text-secondary font-medium">Dirence %</th>
+            <th className="px-4 py-3 text-right text-text-secondary font-medium">Destek ₺</th>
+            <th className="px-4 py-3 text-right text-text-secondary font-medium" title="Ana yükselen trend desteğine uzaklık (sıralama kriteri)">Desteğe % ↑</th>
           </tr>
         </thead>
         <tbody>
@@ -101,21 +103,44 @@ export default function StockTable({ results, onSelect, selectedTicker }: Props)
 
                 {/* Direnç */}
                 <td className="px-4 py-3 text-right font-mono text-xs text-accent-orange">
-                  {s.resistance.toFixed(2)}
+                  {s.resistance != null ? s.resistance.toFixed(2) : "-"}
                 </td>
 
-                {/* Uzaklık */}
+                {/* Dirence uzaklık */}
                 <td className="px-4 py-3 text-right font-mono text-xs">
-                  <span className={clsx(
-                    "px-1.5 py-0.5 rounded",
-                    s.distance_to_resistance_pct < 5
-                      ? "text-accent-green font-bold"
-                      : s.distance_to_resistance_pct < 8
-                        ? "text-accent-yellow"
-                        : "text-text-secondary"
-                  )}>
-                    %{s.distance_to_resistance_pct.toFixed(2)}
-                  </span>
+                  {s.distance_to_resistance_pct != null ? (
+                    <span className={clsx(
+                      "px-1.5 py-0.5 rounded",
+                      s.distance_to_resistance_pct < 5
+                        ? "text-accent-green font-bold"
+                        : s.distance_to_resistance_pct < 8
+                          ? "text-accent-yellow"
+                          : "text-text-secondary"
+                    )}>
+                      %{s.distance_to_resistance_pct.toFixed(2)}
+                    </span>
+                  ) : <span className="text-text-muted">-</span>}
+                </td>
+
+                {/* Destek (Kural 4) */}
+                <td className="px-4 py-3 text-right font-mono text-xs text-sky-400">
+                  {s.support != null ? s.support.toFixed(2) : "-"}
+                </td>
+
+                {/* Desteğe uzaklık (sıralama kriteri) */}
+                <td className="px-4 py-3 text-right font-mono text-xs">
+                  {s.distance_to_support_pct != null ? (
+                    <span className={clsx(
+                      "px-1.5 py-0.5 rounded font-bold",
+                      s.distance_to_support_pct < 5
+                        ? "bg-sky-500/20 text-sky-300"
+                        : s.distance_to_support_pct < 15
+                          ? "text-sky-400"
+                          : "text-text-secondary"
+                    )}>
+                      %{s.distance_to_support_pct.toFixed(2)}
+                    </span>
+                  ) : <span className="text-text-muted">-</span>}
                 </td>
               </tr>
             );

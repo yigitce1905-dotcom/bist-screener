@@ -51,11 +51,11 @@ async def scan_stocks(ignore_rule3: bool = False):
         executor, lambda: scan_all_stocks(ignore_rule3=ignore_rule3)
     )
 
-    # Sıralama: 3. kural aktifse uzaklığa göre, değilse ticker'a göre
-    if ignore_rule3:
-        results.sort(key=lambda x: x["ticker"])
-    else:
-        results.sort(key=lambda x: x["distance_to_resistance_pct"] or 999)
+    # KURAL 4 sıralama: Ana yükselen trend desteğine yakınlığa göre (en yakın üstte)
+    # Destek bulunamayan hisseler en alta düşer
+    results.sort(key=lambda x: (
+        x.get("distance_to_support_pct") if x.get("distance_to_support_pct") is not None else 9999
+    ))
 
     logger.info(f"Tarama tamamlandı: {len(results)} hisse kurallara uyuyor")
     return {
