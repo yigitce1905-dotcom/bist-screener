@@ -184,8 +184,13 @@ def find_rising_trend_support(low: pd.Series, lookback: int = 250) -> Optional[f
 
 
 def _analyze_dataframe(ticker_base: str, df: pd.DataFrame,
-                       ignore_rule3: bool = False) -> Optional[dict]:
-    """Önceden indirilmiş bir DataFrame'i analiz eder."""
+                       ignore_rule3: bool = False,
+                       version: str = "v1") -> Optional[dict]:
+    """
+    Önceden indirilmiş bir DataFrame'i analiz eder.
+    version='v1' → Kırılım avı (EMA 8>21>55>89>144 + Fiyat > EMA55/89/144)
+    version='v2' → Pullback avı (EMA 21>55>89>144 + EMA8 > Fiyat + Fiyat > EMA55/89/144)
+    """
     try:
         if df is None or df.empty or len(df) < MIN_DATA_DAYS:
             return None
@@ -202,11 +207,18 @@ def _analyze_dataframe(ticker_base: str, df: pd.DataFrame,
         latest = {p: float(emas[p].iloc[-1]) for p in EMA_PERIODS}
         current_price = float(close.iloc[-1])
 
-        # KURAL 1: Boğa dizilimi
-        if not (latest[8] > latest[21] > latest[55] > latest[89] > latest[144]):
-            return None
+        if version == "v2":
+            # V2 KURAL 1: EMA 21 > 55 > 89 > 144 dizilimi + EMA 8 > Fiyat (pullback)
+            if not (latest[21] > latest[55] > latest[89] > latest[144]):
+                return None
+            if not (latest[8] > current_price):
+                return None
+        else:
+            # V1 KURAL 1: Tam boğa dizilimi (kırılım için)
+            if not (latest[8] > latest[21] > latest[55] > latest[89] > latest[144]):
+                return None
 
-        # KURAL 2: Fiyat EMA55/89/144 üstünde
+        # KURAL 2: Fiyat EMA55/89/144 üstünde (her iki versiyonda)
         if not (current_price > latest[55]
                 and current_price > latest[89]
                 and current_price > latest[144]):
@@ -322,12 +334,14 @@ def _fetch_one(ticker_base: str, use_cache: bool = True) -> tuple[str, Optional[
     return ticker_base, None
 
 
-def scan_all_stocks(max_workers: int = 6, ignore_rule3: bool = False) -> list[dict]:
+def scan_all_stocks(max_workers: int = 6, ignore_rule3: bool = False,
+                    version: str = "v1") -> list[dict]:
     """
-    BIST hisselerini paralel indirip 3 kurala göre tarar.
+    BIST hisselerini paralel indirip kurallara göre tarar.
+    version='v1' → Kırılım, version='v2' → Pullback.
     Cache sayesinde 2 saat içinde yapılan ikinci taramalar saniyeler sürer.
     """
-    logger.info(f"Tarama başladı: {len(BIST_STOCKS)} hisse, ignore_rule3={ignore_rule3}")
+    logger.info(f"Tarama başladı: {len(BIST_STOCKS)} hisse, version={version}, ignore_rule3={ignore_rule3}")
 
     results = []
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -338,12 +352,13 @@ def scan_all_stocks(max_workers: int = 6, ignore_rule3: bool = False) -> list[di
             ticker_base, df = fut.result()
             if df is None:
                 continue
-            result = _analyze_dataframe(ticker_base, df, ignore_rule3=ignore_rule3)
+            result = _analyze_dataframe(ticker_base, df,
+                                        ignore_rule3=ignore_rule3, version=version)
             if result:
                 results.append(result)
-                logger.info(f"  PASS [{completed}/{len(BIST_STOCKS)}]: {ticker_base}")
+                logger.info(f"  PASS [{completed}/{len(BIST_STOCKS)}] {version}: {ticker_base}")
 
-    logger.info(f"Tarama tamamlandı: {len(results)} hisse uyuyor")
+    logger.info(f"Tarama tamamlandı ({version}): {len(results)} hisse uyuyor")
     return results
 
 

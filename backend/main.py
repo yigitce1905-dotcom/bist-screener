@@ -40,27 +40,32 @@ async def list_stocks():
 
 
 @app.get("/api/scan")
-async def scan_stocks(ignore_rule3: bool = False):
+async def scan_stocks(ignore_rule3: bool = False, version: str = "v1"):
     """
     BIST hisselerini tara.
-    ignore_rule3=true ile sadece KURAL 1 + KURAL 2 uygulanır.
+    version='v1' → Kırılım (EMA 8>21>55>89>144 boğa dizilimi)
+    version='v2' → Pullback (EMA 21>55>89>144 + Fiyat EMA 8 altında)
+    ignore_rule3=true → Düşen direnç kuralını atla
     """
-    logger.info(f"Tarama başladı: {len(BIST_STOCKS)} hisse, ignore_rule3={ignore_rule3}")
+    if version not in ("v1", "v2"):
+        version = "v1"
+    logger.info(f"Tarama: version={version}, ignore_rule3={ignore_rule3}")
     loop = asyncio.get_event_loop()
     results = await loop.run_in_executor(
-        executor, lambda: scan_all_stocks(ignore_rule3=ignore_rule3)
+        executor,
+        lambda: scan_all_stocks(ignore_rule3=ignore_rule3, version=version),
     )
 
     # KURAL 4 sıralama: Ana yükselen trend desteğine yakınlığa göre (en yakın üstte)
-    # Destek bulunamayan hisseler en alta düşer
     results.sort(key=lambda x: (
         x.get("distance_to_support_pct") if x.get("distance_to_support_pct") is not None else 9999
     ))
 
-    logger.info(f"Tarama tamamlandı: {len(results)} hisse kurallara uyuyor")
+    logger.info(f"Tarama tamamlandı ({version}): {len(results)} hisse uyuyor")
     return {
         "count": len(results),
         "scanned": len(BIST_STOCKS),
+        "version": version,
         "ignore_rule3": ignore_rule3,
         "results": results,
     }

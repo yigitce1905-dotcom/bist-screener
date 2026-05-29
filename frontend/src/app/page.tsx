@@ -3,23 +3,30 @@ import { useState } from "react";
 import { ScanResponse, ScanStatus, StockResult } from "@/types";
 import StockTable from "@/components/StockTable";
 import StockChart from "@/components/StockChart";
-import ScanButton from "@/components/ScanButton";
+import ScanButton, { ScanVersion } from "@/components/ScanButton";
 import StatsBar from "@/components/StatsBar";
 import { API_BASE } from "@/lib/api";
 
 const TOTAL_STOCKS = 500;
+
+const VERSION_LABELS: Record<ScanVersion, { name: string; tag: string; color: string }> = {
+  v1: { name: "Kırılım Avı",  tag: "V1", color: "text-accent-green" },
+  v2: { name: "Pullback Avı", tag: "V2", color: "text-sky-400" },
+};
 
 export default function Home() {
   const [status, setStatus] = useState<ScanStatus>("idle");
   const [results, setResults] = useState<StockResult[]>([]);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [activeVersion, setActiveVersion] = useState<ScanVersion | null>(null);
 
-  async function handleScan() {
+  async function handleScan(version: ScanVersion) {
     setStatus("scanning");
+    setActiveVersion(version);
     setResults([]);
     try {
-      const res = await fetch(`${API_BASE}/api/scan`);
+      const res = await fetch(`${API_BASE}/api/scan?version=${version}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ScanResponse = await res.json();
       setResults(data.results);
@@ -29,6 +36,30 @@ export default function Home() {
       setStatus("error");
     }
   }
+
+  const v1Rules = [
+    { title: "Kural 1 — EMA Boğa Dizilimi", color: "text-accent-green", icon: "↑",
+      desc: "EMA 8 > 21 > 55 > 89 > 144 sıralaması tam olmalı. Kısa vadeli ortalamalar uzun vadelilerin üstünde." },
+    { title: "Kural 2 — Fiyatın Konumu", color: "text-accent-blue", icon: "◎",
+      desc: "Kapanış fiyatı EMA 55, 89 ve 144'ün kesinlikle üstünde olmalı." },
+    { title: "Kural 3 — Direnç Yakınlığı", color: "text-accent-yellow", icon: "⟶",
+      desc: "Düşen trend direncine uzaklık %10'dan az. Hisse kırılım eşiğinde sıkışmış." },
+    { title: "Kural 4 — Destek Sıralaması", color: "text-sky-400", icon: "↘",
+      desc: "Sonuçlar ana yükselen trend desteğine yakınlığa göre sıralanır (yakın → üstte)." },
+  ];
+
+  const v2Rules = [
+    { title: "Kural 1 — EMA 8 Altında", color: "text-sky-400", icon: "↓",
+      desc: "EMA 21 > 55 > 89 > 144 dizilimi tam + Fiyat EMA 8'in ALTINDA. Kısa vadeli pullback fırsatı." },
+    { title: "Kural 2 — Fiyatın Konumu", color: "text-accent-blue", icon: "◎",
+      desc: "Kapanış fiyatı hâlâ EMA 55, 89 ve 144'ün üstünde. Uzun vadeli trend bozulmamış." },
+    { title: "Kural 3 — Direnç Yakınlığı", color: "text-accent-yellow", icon: "⟶",
+      desc: "Düşen trend direncine uzaklık %10'dan az." },
+    { title: "Kural 4 — Destek Sıralaması", color: "text-sky-400", icon: "↘",
+      desc: "Sonuçlar ana yükselen trend desteğine yakınlığa göre sıralanır." },
+  ];
+
+  const activeRules = activeVersion === "v2" ? v2Rules : v1Rules;
 
   return (
     <div className="min-h-screen bg-bg-primary">
@@ -44,64 +75,63 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-base font-bold text-text-primary leading-none">BIST Screener</h1>
-              <p className="text-xs text-text-secondary leading-none mt-0.5">EMA Boğa Dizilimi & Trend Kırılımı</p>
+              <p className="text-xs text-text-secondary leading-none mt-0.5">
+                {activeVersion
+                  ? <>Aktif: <span className={VERSION_LABELS[activeVersion].color}>{VERSION_LABELS[activeVersion].tag} — {VERSION_LABELS[activeVersion].name}</span></>
+                  : "İki strateji: Kırılım & Pullback"}
+              </p>
             </div>
           </div>
 
-          {/* Kural rozeti */}
+          {/* Kural rozetleri (aktif versiyona göre) */}
           <div className="hidden md:flex items-center gap-2 text-xs font-mono">
-            <span className="px-2 py-1 rounded bg-bg-hover text-accent-green border border-border">
-              EMA 8&gt;21&gt;55&gt;89&gt;144
-            </span>
-            <span className="px-2 py-1 rounded bg-bg-hover text-accent-blue border border-border">
-              Fiyat &gt; EMA 55/89/144
-            </span>
-            <span className="px-2 py-1 rounded bg-bg-hover text-accent-yellow border border-border">
-              Direnç Uzaklığı &lt;%10
-            </span>
+            {activeVersion === "v2" ? (
+              <>
+                <span className="px-2 py-1 rounded bg-bg-hover text-sky-400 border border-border">
+                  EMA 21&gt;55&gt;89&gt;144 + Fiyat&lt;EMA8
+                </span>
+                <span className="px-2 py-1 rounded bg-bg-hover text-accent-blue border border-border">
+                  Fiyat &gt; EMA 55/89/144
+                </span>
+                <span className="px-2 py-1 rounded bg-bg-hover text-accent-yellow border border-border">
+                  Direnç &lt;%10
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="px-2 py-1 rounded bg-bg-hover text-accent-green border border-border">
+                  EMA 8&gt;21&gt;55&gt;89&gt;144
+                </span>
+                <span className="px-2 py-1 rounded bg-bg-hover text-accent-blue border border-border">
+                  Fiyat &gt; EMA 55/89/144
+                </span>
+                <span className="px-2 py-1 rounded bg-bg-hover text-accent-yellow border border-border">
+                  Direnç &lt;%10
+                </span>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
-        {/* Tarama kontrolleri */}
+        {/* Tarama kontrolleri (iki buton) */}
         <div className="mb-5">
           <ScanButton
             status={status}
             scanned={status === "done" ? TOTAL_STOCKS : 0}
             total={TOTAL_STOCKS}
             found={results.length}
-            onClick={handleScan}
+            activeVersion={activeVersion}
+            onScan={handleScan}
           />
         </div>
 
-        {/* İstatistik çubuğu */}
         <StatsBar results={results} lastUpdated={lastUpdated} />
 
-        {/* Kural açıklamaları (boş durum) */}
         {status === "idle" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 mb-6">
-            {[
-              {
-                title: "Kural 1 — EMA Boğa Dizilimi",
-                desc: "EMA 8 > EMA 21 > EMA 55 > EMA 89 > EMA 144 sıralaması tam olmalı. Kısa vadeli ortalamalar uzun vadelilerin üstünde.",
-                color: "text-accent-green",
-                icon: "↑",
-              },
-              {
-                title: "Kural 2 — Fiyatın Konumu",
-                desc: "Kapanış fiyatı EMA 55, 89 ve 144'ün kesinlikle üstünde olmalı. EMA 8/21 üstünde olması ekstra güç göstergesi.",
-                color: "text-accent-blue",
-                icon: "◎",
-              },
-              {
-                title: "Kural 3 — Direnç Yakınlığı",
-                desc: "EMA 8/21'in düşen trend direncine olan uzaklığı %10'dan az olmalı. Hisse kırılım eşiğinde sıkışmış demektir.",
-                color: "text-accent-yellow",
-                icon: "⟶",
-              },
-            ].map((rule) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 mb-6">
+            {activeRules.map((rule) => (
               <div key={rule.title} className="glass-card rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`text-lg ${rule.color}`}>{rule.icon}</span>
@@ -113,7 +143,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Sonuç tablosu */}
         <StockTable
           results={results}
           onSelect={setSelectedTicker}
@@ -121,12 +150,8 @@ export default function Home() {
         />
       </main>
 
-      {/* Grafik modal */}
       {selectedTicker && (
-        <StockChart
-          ticker={selectedTicker}
-          onClose={() => setSelectedTicker(null)}
-        />
+        <StockChart ticker={selectedTicker} onClose={() => setSelectedTicker(null)} />
       )}
     </div>
   );
