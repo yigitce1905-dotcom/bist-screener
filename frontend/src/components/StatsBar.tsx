@@ -10,7 +10,7 @@ export default function StatsBar({ results, lastUpdated }: Props) {
   const gainers = results.filter((s) => s.daily_change_pct > 0).length;
   const losers = results.filter((s) => s.daily_change_pct <= 0).length;
   const aboveBothEma = results.filter((s) => s.above_ema8 && s.above_ema21).length;
-  const nearBreakout = results.filter((s) => s.distance_to_resistance_pct < 5).length;
+  const nearBreakout = results.filter((s) => s.distance_to_resistance_pct != null && s.distance_to_resistance_pct < 5).length;
 
   if (results.length === 0) return null;
 
