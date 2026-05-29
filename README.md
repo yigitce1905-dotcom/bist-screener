@@ -29,3 +29,4 @@ npm run dev
 - **Frontend**: Vercel (Next.js native)
 - **Backend**: Render.com (`render.yaml` ile otomatik)
 - Vercel'e env var ekle: `NEXT_PUBLIC_API_BASE=https://<render-url>`
+# Auto-deploy aktif (2026-05-29)
